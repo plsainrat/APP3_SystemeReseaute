@@ -1,6 +1,6 @@
 #include "mbed.h"
 #include "MMA8452.h"
-
+#include "rtos.h"
 
 
 DigitalOut myled(LED1);
@@ -8,6 +8,7 @@ DigitalOut pin8(p8);
 
 DigitalOut led1(LED1);
 DigitalOut led2(LED2);
+DigitalOut led4(LED4);
 
 DigitalIn button(p30);
 
@@ -15,6 +16,8 @@ Serial pc(USBTX,USBRX);
 
 Serial com(p13,p14);
 MMA8452 acc(p28, p27, 100000);
+
+
 
 uint8_t ID_cmd[9] = {0x7E, 0x00, 0x05, 0x08, 0x01, 0x49, 0x44, 0x11, 0x58};
 uint8_t SC_cmd[9] = {0x7E, 0x00, 0x05, 0x08, 0x01, 0x53, 0x43, 0x13, 0x4D};
@@ -27,6 +30,8 @@ uint8_t LedError_Off[9] = {0x7E, 0x00, 0x05, 0x08, 0x01, 0x44, 0x30, 0x04, 0x7E}
 uint8_t TransmitRequest[22] = {0x7E, 0x00, 0x12, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00, 0x01, 0x33, 0x32, 0x31, 0x5A};
 uint8_t asdasda[20] = {0x7e, 0x00, 0x10, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00,0x00 ,0x00 ,0x00 ,0x00 ,0xff ,0xfe ,0x00 ,0x00 ,0x01 ,0x00 ,0xf0};
 
+bool errorResponse = false;
+bool threadrdy = true;
 
 void sendCMD(uint8_t cmd[], int size)
 {
@@ -89,16 +94,37 @@ void sendTransmitRequest(uint16_t length,uint8_t* data)
     com.putc(checksum);
 }
 
-void readTransmitStatus()
+void readAtCmdResponse(uint8_t frameType, uint16_t length)
 {
-    uint16_t msbLength = com.getc() << 8;
-    uint16_t lsbLength = com.getc();
-    uint16_t length = msbLength + lsbLength;
-    if(length != 7) {
-        return;
+    uint8_t frameID = com.getc();
+    uint8_t ATCmd[2];
+    ATCmd[0] = com.getc();
+    ATCmd[1] = com.getc();
+    uint8_t cmdStatus = com.getc();
+
+    uint8_t cmd_Data[length-5];
+    for(int i = 0; i < length - 5; i++) {
+        cmd_Data[i] = com.getc();
+        pc.printf("%x",cmd_Data[i]);
     }
-    //pc.printf("length%x\n", length);
-    uint8_t frameType = com.getc();
+    uint8_t checkSum = com.getc();
+    uint8_t calc_checkSum = 0xFF - frameType - ATCmd[0] - ATCmd[1] - frameID - cmdStatus;
+    for(int i = 0; i < length - 5; i++) {
+        calc_checkSum -= cmd_Data[i];
+    }
+    if(calc_checkSum != checkSum) {
+        pc.printf("ERROR ");
+        errorResponse = true;
+        //sendCMD(LedError_On,9);
+    } else {
+        pc.printf(" Good CheckSum");
+    }
+    //pc.printf("MAC: %x %x", nodeADR[0], nodeADR[1]);
+}
+
+void readTransmitStatus(uint8_t frameType)
+{
+
     uint8_t frameID = com.getc();
     uint8_t netAdr[2];
     netAdr[0] = com.getc();
@@ -111,12 +137,31 @@ void readTransmitStatus()
     uint8_t calc_checkSum = 0xFF - frameType - frameID - netAdr[0] - netAdr[1] - transmitRetryCount - delivery_Status - discovery_Status;
     if(calc_checkSum != checkSum) {
         pc.printf("ERROR");
-        sendCMD(LedError_On,9);
-        wait(0.1);
+        //sendCMD(LedError_On,9);
+        errorResponse = true;
     } else {
         pc.printf("Good CheckSum");
     }
     pc.printf("\n");
+}
+
+void readFrame()
+{
+    uint16_t msbLength = com.getc() << 8;
+    uint16_t lsbLength = com.getc();
+    uint16_t length = msbLength + lsbLength;
+    //pc.printf("length%x\n", length);
+    uint8_t frameType = com.getc();
+    switch(frameType) {
+        case(0x88): {
+            readAtCmdResponse(frameType,length);
+            break;
+        }
+        case(0x8B): {
+            readTransmitStatus(frameType);
+            break;
+        }
+    }
 }
 
 void init()
@@ -134,36 +179,50 @@ void init()
     led1=1;
 }
 
+void FlasErrorLedFct()
+{
+    led4 = 0;
+} 
+
 int main()
 {
+    Timeout errorTimeOut;
     led1=1;
     init();
-    
+    double readAcc[3]= {0,0,0};
+    int8_t dataAcc [4] = {0x02,0,0,0};
+    uint8_t dataBut[2]= {0x01,0};
     while(1) {
         led1=1;
 
-        
         //envoi des données de l'accelerometre
-        double readAcc[3]= {0,0,0};
-        int8_t dataAcc [4] = {0x02,0,0,0};
-        uint8_t dataBut[2]= {0x01,0};
         acc.readXYZGravity((readAcc),(readAcc+1),(readAcc+2));
-        for(int i=0;i<3;i++){
-            dataAcc[i+1]=readAcc[i]*100;
-            }
-        sendTransmitRequest(4,(uint8_t*)dataAcc);
 
-        //envoi de la donnée du bouton
-        if(button) {
-            sendTransmitRequest(2,dataBut);
-        }
         if(com.readable()==1) {
             char temp = (char)com.getc();
+
             if(temp == 0x7E) {
-                readTransmitStatus();
+                readFrame();
             }
+        } else {
+            if(abs((readAcc[0]*100)-dataAcc[1]) > 5) {
+                for(int i=0; i<3; i++) {
+                    dataAcc[i+1]=readAcc[i]*100;
+                }
+                sendTransmitRequest(4,(uint8_t*)dataAcc);
+            }
+
+            //envoi de la donnée du bouton
+            if(button) {
+                sendTransmitRequest(2,dataBut);
+            }
+            if(errorResponse) {
+                errorResponse = false;
+                led4 = 1;
+                errorTimeOut.attach(&FlasErrorLedFct,1.0f);
+            }
+
         }
-        wait(0.2);
-        sendCMD(LedError_Off,9);
+
     }
 }
