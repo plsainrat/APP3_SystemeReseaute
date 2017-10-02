@@ -2,7 +2,6 @@
 #include "MMA8452.h"
 
 
-Accelerometer_MMA8452 acc(p28,p27,100000);
 
 DigitalOut myled(LED1);
 DigitalOut pin8(p8);
@@ -15,11 +14,15 @@ DigitalIn button(p30);
 Serial pc(USBTX,USBRX);
 
 Serial com(p13,p14);
+MMA8452 acc(p28, p27, 100000);
 
 uint8_t ID_cmd[9] = {0x7E, 0x00, 0x05, 0x08, 0x01, 0x49, 0x44, 0x11, 0x58};
 uint8_t SC_cmd[9] = {0x7E, 0x00, 0x05, 0x08, 0x01, 0x53, 0x43, 0x13, 0x4D};
 uint8_t WR_cmd[8] = {0x7E, 0x00, 0x04, 0x08, 0x01, 0x57, 0x52, 0x4D};
 uint8_t AC_cmd[8] = {0x7E, 0x00, 0x04, 0x08, 0x01, 0x41, 0x43, 0x72};
+
+uint8_t LedError_On[9] = {0x7E, 0x00, 0x05, 0x08, 0x01, 0x44, 0x30, 0x05, 0x7D};
+uint8_t LedError_Off[9] = {0x7E, 0x00, 0x05, 0x08, 0x01, 0x44, 0x30, 0x04, 0x7E};
 
 uint8_t TransmitRequest[22] = {0x7E, 0x00, 0x12, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00, 0x01, 0x33, 0x32, 0x31, 0x5A};
 uint8_t asdasda[20] = {0x7e, 0x00, 0x10, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00,0x00 ,0x00 ,0x00 ,0x00 ,0xff ,0xfe ,0x00 ,0x00 ,0x01 ,0x00 ,0xf0};
@@ -86,11 +89,6 @@ void sendTransmitRequest(uint16_t length,uint8_t* data)
     com.putc(checksum);
 }
 
-void sendData()
-{
-
-}
-
 void readTransmitStatus()
 {
     uint16_t msbLength = com.getc() << 8;
@@ -113,6 +111,8 @@ void readTransmitStatus()
     uint8_t calc_checkSum = 0xFF - frameType - frameID - netAdr[0] - netAdr[1] - transmitRetryCount - delivery_Status - discovery_Status;
     if(calc_checkSum != checkSum) {
         pc.printf("ERROR");
+        sendCMD(LedError_On,9);
+        wait(0.1);
     } else {
         pc.printf("Good CheckSum");
     }
@@ -131,37 +131,39 @@ void init()
     sendCMD(SC_cmd,9);
     sendCMD(WR_cmd,8);
     sendCMD(AC_cmd,8);
+    led1=1;
 }
 
 int main()
 {
-    led1 = 1;
+    led1=1;
     init();
-    led1 = 0;
+    
     while(1) {
         led1=1;
 
-
+        
         //envoi des données de l'accelerometre
-        uint8_t dataAcc[4]= {0x02,0,0,0};
+        double readAcc[3]= {0,0,0};
+        int8_t dataAcc [4] = {0x02,0,0,0};
         uint8_t dataBut[2]= {0x01,0};
-        acc.read_xyz((char*)dataAcc+1,(char*)dataAcc+2,(char*)dataAcc+3);
-        sendTransmitRequest(4,dataAcc);
+        acc.readXYZGravity((readAcc),(readAcc+1),(readAcc+2));
+        for(int i=0;i<3;i++){
+            dataAcc[i+1]=readAcc[i]*100;
+            }
+        sendTransmitRequest(4,(uint8_t*)dataAcc);
 
         //envoi de la donnée du bouton
         if(button) {
-            //sendTransmitRequest();
             sendTransmitRequest(2,dataBut);
-            //sendCMD(asdasda,20);
         }
         if(com.readable()==1) {
             char temp = (char)com.getc();
             if(temp == 0x7E) {
                 readTransmitStatus();
-                led2 = 0;
             }
         }
-        led1=0;
-        wait(0.5);
+        wait(0.2);
+        sendCMD(LedError_Off,9);
     }
 }
