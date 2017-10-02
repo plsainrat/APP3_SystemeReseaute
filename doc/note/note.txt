@@ -1,0 +1,35 @@
+quand tu envoie des données au ziggbee c'est pas UART
+
+il y a deux pins en plus :
+   CTS => indique a l'host d'arreter d'envoyer des donnée (DIN)( va s'activer quand le buffer de donnée recu est a 17 bytes d'etre totallement remplis, il se désactive quand le buffer a de nouveau 34 bytes de libre)
+   RTS => l'hoste demande au module de ne pas lui envoyer de données (DOUT) ( il faut faire attention a ne pas le garder allumer trop longtemps pour eviter que le buffer du module ne déborde)
+
+coordinateur :
+	     -choisit un channel et un PAN ID
+	     -peut transmetre/recevoir et router des données
+	     -peut accepter des device sur le reseau
+
+
+
+rooter :
+	     -se connecte a un reseau
+	     -peut router les données
+	     -peut accepter un device sur le reseau
+	     -ne peut pas dormir
+	     -peut garder des données dans un roter le temps de les transmetre
+
+end device :
+    	     -doit se connecter a un reseau
+    	     -peut transetre et recevoir des données
+	     -ne peut pas accepter les autre device sur le reseau
+	     -peut dormir
+
+les end device sont accepté sur le reseau par un rooter ou un coordinateur, ce dernier deviendra son "parent"
+
+PANID => (16 bits ou 64bits)  ( ca va peut etre dynamique, dans un endroit avec plusieur ziggbee etwork, il faut que le tient ai un PANID unique ! => en labo il va y en avoir plein en meme temps).
+
+Coordinator :
+
+
+
+

@@ -1,0 +1,25 @@
+!SESSION 2017-09-27 14:03:13.602 -----------------------------------------------
+eclipse.buildId=unknown
+java.version=1.7.0_21
+java.vendor=Oracle Corporation
+BootLoader constants: OS=linux, ARCH=x86_64, WS=gtk, NL=fr_FR
+Framework arguments:  -clearPersistedState
+Command-line arguments:  -os linux -ws gtk -arch x86_64 -clearPersistedState
+
+!ENTRY org.eclipse.ui 2 2 2017-09-27 14:03:19.785
+!MESSAGE Invalid preference category path: org.eclipse.equinox.internal.p2.ui.sdk.ProvisioningPreferencePage (bundle: org.eclipse.equinox.p2.ui.sdk.scheduler, page: org.eclipse.equinox.internal.p2.ui.sdk.scheduler.AutomaticUpdatesPreferencePage)
+
+!ENTRY com.digi.xctung.p2.update 4 4 2017-09-27 14:03:47.145
+!MESSAGE Error while removing firmware file: XBee_SX8X/XB8X_A003.zip
+
+!ENTRY com.digi.xctung.p2.update 4 4 2017-09-27 14:03:51.892
+!MESSAGE Error while installing firmware file: /tmp/xctung/force_temp/xbee/xb24_15_4_10ee.xml
+
+!ENTRY com.digi.xctung.p2.update 4 4 2017-09-27 14:03:51.893
+!MESSAGE Error while removing firmware file: xbee_cell/XBXC-11308.zip
+
+!ENTRY com.digi.xctung.p2.update 4 4 2017-09-27 14:03:53.713
+!MESSAGE Error while installing firmware file: /tmp/xctung/force_temp/xbee_cell/modem_fw.json
+
+!ENTRY com.digi.xctung.p2.update 4 4 2017-09-27 14:03:56.153
+!MESSAGE Error while installing firmware file: /tmp/xctung/force_temp/xbee_cell_3g/XBXC-11308.xml

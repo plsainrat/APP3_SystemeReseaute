@@ -1,0 +1,98 @@
+
+Procedural réponse au questions :
+
+1) quel couche physique :
+   Mac : couche physique 802.15.4 ( evite les interferences)
+   ZigBee : au desus de la couche mac
+
+2) echange d'info sur 802.15.4
+   3 mode different:
+     	  -mode beacon
+	  	signal balise envoyé sur une base de temps régulière, contient l'information du noeud sur lequel on est relié. dit a tt les monde que ce point d'accées est libre et donne les info pour s'y connecter
+
+
+    Coordinateur              Noeud
+         |          Beacon      |
+         |------------------->  |
+         |                      |
+         |          Data        |
+         |<---------------------|
+         |                      |
+         |          Ack         |
+         |--------------------->|
+
+
+
+     Coordinateur              Noeud
+          |          Beacon      |
+          |------------------->  |
+          |                      |
+          |         ? Data       |
+          |<---------------------|
+          |                      |
+          |          Ack         |
+          |--------------------->|
+          |                      |
+          |          Data        |
+          |--------------------->|
+          |        Ack           |
+          |<---------------------|
+
+
+	     -mode ouvert
+	  	1 noeus coordinateur, tout les autre noeud sont ouvert
+      (pareil qu'avant sans le beacon)
+
+	     - peer to peer : les nœuds vont se parler entre eux
+
+3) mécanisme d'accès au média
+
+
+  -CSMA/CD :  on l'utilise dans les connection fillaire, permet d'ecouter si qqn utilise le canal ou si le canal est disponible
+
+
+          si c'est deux noeuds veulent communiqué il sont obliger de passé par le canal, et ducoup il peuvent bloquer la communication entre les autres noeuds
+          qui sont sur le canal. Si il y a une collision entre les transmission sur le canal, on va decider au hasard qui va reprendre le canal en premier.
+           o-------------------->o
+  _________|_____________________|
+      |                |
+      o                o
+Est ce qu'on peux utiliser les meme mécanisme avec un reseau sans fils ?
+
+
+  -CSMA/CA : on va utilisé ca pour les reseau sans fils :
+        avant de commencer a communiquer, le noeud va ecouter pour voir si qqn communique, ou si il ya du bruit, puis apres il commence a communiquer
+        ON VA EVITER AU MAXIMUM LES COLLISIONS
+
+
+
+  -segmentation temporel :
+        on va attendre un certain temps avant la reponse au beacon en fontion du type de message (les messages important vont répondre en premier)
+        pour eviter au maximum les collisions (souvant la reponse va pas au dela de 1ms)
+
+  -est ce que c'est le meme protocole pour tout les type de message ? :
+
+
+4) mecanisme de d'adressage
+    adressage : 64bit  : Hardware
+                16bit  : Coordination
+
+on va pouvoir faire du broadcast , si on connais le 64bit et pas le 16 bit , on va metre l'adresse 64+FFFF et ducoup on va construire un chemin jusqu'au
+device concerné.
+
+    -parcours des paquets :
+        Broadcast : chaque rooter va repeter le broadcast une fois
+        ( voir zigbee p.30 )
+
+    -algo de routage du zigBee :
+        il va se créer un reseau des qu'il y a un coordinateur.
+        il ne se passera rien tant qu'il n'y a pas de messages : la route sera créer des qu'il y aura un message a transmetre.
+        quand un noeud connais ou se trouve le noeud destinataire , il va envoyer sont adresse + le parcours a faire pour atteindre le dit noeud
+
+
+
+5)APS
+
+    -EndPoint : module qui effectuent des fonctions pour le système
+    -Cluster ID : les endpoints vont etre de certain type, et vont avoir un certain nombre de fonctions ( quand tu te connect au device , il t'envois
+    ce genre d'informations )
