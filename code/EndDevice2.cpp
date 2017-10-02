@@ -17,7 +17,6 @@ uint8_t SC_cmd[9] = {0x7E, 0x00, 0x05, 0x08, 0x01, 0x53, 0x43, 0x13, 0x4D};
 uint8_t WR_cmd[8] = {0x7E, 0x00, 0x04, 0x08, 0x01, 0x57, 0x52, 0x4D};
 uint8_t AC_cmd[8] = {0x7E, 0x00, 0x04, 0x08, 0x01, 0x41, 0x43, 0x72};
 
-uint8_t TransmitRequest[22] = {0x7E, 0x00, 0x12, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00, 0x01, 0x33, 0x32, 0x31, 0x5A};
 
 void sendCMD(uint8_t cmd[], int size){
     for(int i = 0; i < size; i++) {
@@ -25,12 +24,68 @@ void sendCMD(uint8_t cmd[], int size){
     }
 }
 
-void sendTransmitRequest()
-{
-    for(int i = 0; i < 22; i++) {
-        com.putc(TransmitRequest[i]);
-    }
+void sendData(){
+  led1=1;
+
+
+  //envoi des données de l'accelerometre
+  uint8_t data[3]={0,0,0};
+  acc.readXYZGravity(data,data+1,data+2);
+  sendTransmitRequest(3,data);
+
+
+
+  //envoi de la donnée du bouton
+  if(button==1){
+    data[2]=0x01;
+    sendTransmitRequest(1,data+3);
+  }
+  else{
+    data[2]=0x00;
+    sendTransmitRequest(1,data+3);
+  }
+
+
+  led1=0;
 }
+
+void sendTransmitRequest(uint_16 length,uint_8* data){
+  uint8_t cheksum=0;
+
+
+  //start
+  com.putc(0x7E);
+  //bits de poids fort du poid du message
+  com.putc((uint8_t)(length >> 8));
+  //bits de poids faible du poid du message
+  com.putc((uint8_t)(length&0xF));
+  //transmission request
+  com.putc(0x10);
+  com.putc(0x01);
+  //broadcast radius
+  com.putc(0x00);
+  //option
+  com.putc(0x00);
+
+
+//on envois le message en broadcast
+  for(int i=0;i<8;i++){
+    com.put(0x00);
+  }
+  com.putc(0xFF);
+  com.putc(0xFE);
+
+  //envoie du message
+  for(int i = 0; i < lenght; i++){
+      checksum = *(data+i) + checksum;
+      com.putc(*(data+i));
+  }
+  //calcul du checksum
+  checksum=0xFF-checksum;
+  com.putc(checksum);
+
+}
+
 
 void readTransmitStatus()
 {
@@ -76,20 +131,11 @@ void init()
 
 int main()
 {
-    init();
     led1 = 1;
+    Ticker tick;
+    tick.attach(&sendData,0.5);
+    init();
+    led1 = 0;
     while(1) {
-        if(button) {
-            led2 = 1;
-            sendTransmitRequest();
-        }
-        if(com.readable()==1) {
-            char temp = (char)com.getc();
-            if(temp == 0x7E) {
-                readTransmitStatus();
-                led2 = 0;
-            }
-        }
-        wait(0.05);
     }
 }
