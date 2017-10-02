@@ -2,7 +2,7 @@
 #include "MMA8452.h"
 
 
-Accelerometer_MMA8452 acc(p9,p10,100000);
+Accelerometer_MMA8452 acc(p28,p27,100000);
 
 DigitalOut myled(LED1);
 DigitalOut pin8(p8);
@@ -21,6 +21,8 @@ uint8_t SC_cmd[9] = {0x7E, 0x00, 0x05, 0x08, 0x01, 0x53, 0x43, 0x13, 0x4D};
 uint8_t WR_cmd[8] = {0x7E, 0x00, 0x04, 0x08, 0x01, 0x57, 0x52, 0x4D};
 uint8_t AC_cmd[8] = {0x7E, 0x00, 0x04, 0x08, 0x01, 0x41, 0x43, 0x72};
 
+uint8_t TransmitRequest[22] = {0x7E, 0x00, 0x12, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00, 0x01, 0x33, 0x32, 0x31, 0x5A};
+
 
 void sendCMD(uint8_t cmd[], int size)
 {
@@ -29,26 +31,30 @@ void sendCMD(uint8_t cmd[], int size)
     }
 }
 
-
+void sendTransmitRequest()
+{
+    for(int i = 0; i < 22; i++) {
+        com.putc(TransmitRequest[i]);
+    }
+}
 
 void sendTransmitRequest(uint16_t length,uint8_t* data)
 {
-    uint8_t checksum=0;
+    uint8_t checksum=0xFF;
 
 
     //start
     com.putc(0x7E);
     //bits de poids fort du poid du message
-    com.putc((uint8_t)(length >> 8));
+    uint8_t lengthMSB = ((length + 13) >> 8);
+    com.putc(lengthMSB);
     //bits de poids faible du poid du message
-    com.putc((uint8_t)(length&0xF));
+    uint8_t lengthLSB = ((length + 13)&0xFF);
+    com.putc(lengthLSB);
     //transmission request
     com.putc(0x10);
     com.putc(0x01);
-    //broadcast radius
-    com.putc(0x00);
-    //option
-    com.putc(0x00);
+    
 
 
 //on envois le message en broadcast
@@ -57,14 +63,19 @@ void sendTransmitRequest(uint16_t length,uint8_t* data)
     }
     com.putc(0xFF);
     com.putc(0xFE);
-
+    
+    //broadcast radius
+    com.putc(0x00);
+    //option
+    com.putc(0x00);
+    checksum = checksum - 0xFF - 0xFE - 0x10 - 0x01;
     //envoie du message
     for(int i = 0; i < length; i++) {
-        checksum = *(data+i) + checksum;
+        checksum -= *(data+i);
         com.putc(*(data+i));
     }
+    pc.printf("chek%x\n",checksum);
     //calcul du checksum
-    checksum=0xFF-checksum;
     com.putc(checksum);
 
 }
@@ -75,20 +86,17 @@ void sendData()
 
 
     //envoi des données de l'accelerometre
-    uint8_t data[3]= {0,0,0};
-    acc.read_xyz((char*)data,(char*)data+1,(char*)data+2);
-    sendTransmitRequest(3,data);
+    uint8_t dataAcc[4]= {0x02,0,0,0};
+    uint8_t dataBut[2]={0x01,0};
+    acc.read_xyz((char*)dataAcc+1,(char*)dataAcc+2,(char*)dataAcc+3);
+    sendTransmitRequest(4,dataAcc);
 
-
+    //sendTransmitRequest();
 
     //envoi de la donnée du bouton
-    if(button==1) {
-        data[2]=0x01;
-        sendTransmitRequest(1,data+3);
-    } else {
-        data[2]=0x00;
-        sendTransmitRequest(1,data+3);
-    }
+    if(button) {
+        sendTransmitRequest(2,dataBut);
+        }
 
 
     led1=0;
@@ -143,6 +151,6 @@ int main()
     led1 = 0;
     while(1) {
         sendData();
-        wait(0.25);
+        wait(0.1);
     }
 }
