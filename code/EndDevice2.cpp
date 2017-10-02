@@ -60,7 +60,7 @@ void readTransmitStatus()
     pc.printf("\n");
 }
 
-int main()
+void init()
 {
     pin8=0;
     wait(0.4);
@@ -72,6 +72,11 @@ int main()
     sendCMD(SC_cmd,9);
     sendCMD(WR_cmd,8);
     sendCMD(AC_cmd,8);
+}
+
+int main()
+{
+    init();
     led1 = 1;
     while(1) {
         if(button) {
