@@ -22,6 +22,7 @@ uint8_t WR_cmd[8] = {0x7E, 0x00, 0x04, 0x08, 0x01, 0x57, 0x52, 0x4D};
 uint8_t AC_cmd[8] = {0x7E, 0x00, 0x04, 0x08, 0x01, 0x41, 0x43, 0x72};
 
 uint8_t TransmitRequest[22] = {0x7E, 0x00, 0x12, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0x00, 0x00, 0x01, 0x33, 0x32, 0x31, 0x5A};
+uint8_t asdasda[20] = {0x7e, 0x00, 0x10, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00,0x00 ,0x00 ,0x00 ,0x00 ,0xff ,0xfe ,0x00 ,0x00 ,0x01 ,0x00 ,0xf0};
 
 
 void sendCMD(uint8_t cmd[], int size)
@@ -35,71 +36,59 @@ void sendTransmitRequest()
 {
     for(int i = 0; i < 22; i++) {
         com.putc(TransmitRequest[i]);
+        pc.printf("%x ",TransmitRequest[i]);
     }
 }
 
 void sendTransmitRequest(uint16_t length,uint8_t* data)
 {
-    uint8_t checksum=0xFF;
 
-
+    uint8_t startBit = 0x7E;
     //start
-    com.putc(0x7E);
+    com.putc(startBit);
     //bits de poids fort du poid du message
-    uint8_t lengthMSB = ((length + 13) >> 8);
+    uint8_t lengthMSB = ((length + 14) >> 8);
     com.putc(lengthMSB);
     //bits de poids faible du poid du message
-    uint8_t lengthLSB = ((length + 13)&0xFF);
+    uint8_t lengthLSB = ((length + 14)&0xFF);
     com.putc(lengthLSB);
     //transmission request
-    com.putc(0x10);
-    com.putc(0x01);
-    
+    uint8_t frameType = 0x10;
+    uint8_t frameID = 0x01;
 
+    com.putc(frameType);
+    com.putc(frameID);
 
-//on envois le message en broadcast
+    //on envois le message en broadcast
     for(int i=0; i<8; i++) {
         com.putc(0x00);
     }
-    com.putc(0xFF);
-    com.putc(0xFE);
-    
+    uint8_t macadr[2];
+    macadr[0] = 0xFF;
+    macadr[1] = 0xFE;
+    com.putc(macadr[0]);
+    com.putc(macadr[1]);
+
+
     //broadcast radius
-    com.putc(0x00);
+    uint8_t radius = 0x00;
+    uint8_t options = 0x00;
+    com.putc(radius);
     //option
-    com.putc(0x00);
-    checksum = checksum - 0xFF - 0xFE - 0x10 - 0x01;
+    com.putc(options);
+    uint8_t checksum = 0xFF - macadr[0]  - macadr[1] - frameType - frameID;
     //envoie du message
     for(int i = 0; i < length; i++) {
         checksum -= *(data+i);
         com.putc(*(data+i));
     }
-    pc.printf("chek%x\n",checksum);
     //calcul du checksum
     com.putc(checksum);
-
 }
 
 void sendData()
 {
-    led1=1;
 
-
-    //envoi des données de l'accelerometre
-    uint8_t dataAcc[4]= {0x02,0,0,0};
-    uint8_t dataBut[2]={0x01,0};
-    acc.read_xyz((char*)dataAcc+1,(char*)dataAcc+2,(char*)dataAcc+3);
-    sendTransmitRequest(4,dataAcc);
-
-    //sendTransmitRequest();
-
-    //envoi de la donnée du bouton
-    if(button) {
-        sendTransmitRequest(2,dataBut);
-        }
-
-
-    led1=0;
 }
 
 void readTransmitStatus()
@@ -150,7 +139,29 @@ int main()
     init();
     led1 = 0;
     while(1) {
-        sendData();
-        wait(0.1);
+        led1=1;
+
+
+        //envoi des données de l'accelerometre
+        uint8_t dataAcc[4]= {0x02,0,0,0};
+        uint8_t dataBut[2]= {0x01,0};
+        acc.read_xyz((char*)dataAcc+1,(char*)dataAcc+2,(char*)dataAcc+3);
+        sendTransmitRequest(4,dataAcc);
+
+        //envoi de la donnée du bouton
+        if(button) {
+            //sendTransmitRequest();
+            sendTransmitRequest(2,dataBut);
+            //sendCMD(asdasda,20);
+        }
+        if(com.readable()==1) {
+            char temp = (char)com.getc();
+            if(temp == 0x7E) {
+                readTransmitStatus();
+                led2 = 0;
+            }
+        }
+        led1=0;
+        wait(0.5);
     }
 }

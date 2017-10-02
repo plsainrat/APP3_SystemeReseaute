@@ -158,11 +158,11 @@ int main()
         if(com.readable()) {          
             char temp = (char)com.getc();
             if(temp == 0x7E) {
-                //readFrame();
+                readFrame();
                 led1 = !led1;
-                pc.printf("\n");
+                //pc.printf("\n");
             }
-            pc.printf("%x",temp);
+            //pc.printf("%x",temp);
         }
         //if(toggle){
 //            toggle = !toggle;
