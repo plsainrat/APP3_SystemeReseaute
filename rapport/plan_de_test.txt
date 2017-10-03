@@ -1,0 +1,11 @@
+-vérifier le bon fonctionnement des capteurs
+-afficher les valeurs des capteurs (verifications des protocoles de communication I²C etc)
+-prouver que les modules XBee sont bien en mode API
+-vérifier que l'adressage dynamique des adresse fonctionne(prédire la valeur de l'adresse et vérifier si cela correspond)
+-montrer le fonctionnement du réseau ZigBee (envoi de données vers le second mbed et montrer que les données ont bien été reçues)
+-simuler une erreur de communication et voir le comportement du système (LEDs)
+-montrer le fonctionnement des websocket grace au serveur d'application (affichage des données sur pc ???)
+-montrer que l'architecture logiciel permet une reconfiguration facile (en cas d'ajout de capteurs)
+-montrer le fichier de configuration (identification réseau PAN/periode de lecture des capteurs)
+-montrer le fonctionnement de la routine de détection d'erreur (expliquer son fonctionnement ?)
+-montrer le fonctionnement de la communication bidirectionnelle (led connecté au module 1 controlé par le module 2, fréquence de clignitement 1Hz)
